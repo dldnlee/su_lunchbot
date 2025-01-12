@@ -48,13 +48,13 @@ def handle_split_command(ack, body, say):
     print(f"The filtered list is {filtered_list}")
 
     # Split the mentioned users into the number of groups defined in the command
-    groups = split_into_groups(user_list, num_groups)
+    groups = split_into_groups(filtered_list, num_groups)
 
     # Send a formatted response message back to the channel
-    response_message = "🍖 오늘의 점심 팀 🍖\n"
+    response_message = "🍖 오늘의 점심 팀 🍖\n\n"
     for i, group in enumerate(groups, start=1):
         group_mentions = ", ".join([f"<@{user_id}>" for user_id in group])
-        response_message += f"Group {i}:\n - {group_mentions}\n"
+        response_message += f"점심 팀 {i}:\n - {group_mentions}\n\n"
 
     # Post the result back in the channel
     say(response_message)
