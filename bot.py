@@ -31,7 +31,8 @@ def handle_split_command(ack, body, say):
     # Turn the split command text content into a list
     command_text = text.strip().split()
     # Get the number of groups to split it into
-    num_groups = int(command_text[0])
+    if command_text: num_groups = int(command_text[0])
+    else : num_groups = 3
     # Get the mentioned users
     user_mentions = command_text[1:]
     
