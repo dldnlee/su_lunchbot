@@ -19,7 +19,7 @@ app = App(token=bot_token)
 # Initialize the Client
 client = WebClient(token=bot_token)
 
-@app.command("/splitusers")
+@app.command("/lunch")
 def handle_split_command(ack, body, say):
     ack()
     # 인트로 텍스트
