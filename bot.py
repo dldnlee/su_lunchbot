@@ -1,99 +1,66 @@
 import os
 from dotenv import load_dotenv
 from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
-import random
+from splitIntoGroups import split_into_groups
+from splitIntoGroups import split_into_groups
+from filterGroup import filter_group
+from getLunchConvoInfo import get_lunch_convo_info
 
 # Load environment variables
 load_dotenv()
 bot_token = os.getenv('SLACK_BOT_TOKEN')
 app_token = os.getenv('SLACK_APP_TOKEN')
+channel_id = os.getenv('SLACK_CHANNEL_ID')
 
 # Initialize the Bolt app
 app = App(token=bot_token)
+# Initialize the Client
 client = WebClient(token=bot_token)
-
-
-def get_all_users_in_channel(channel_id):
-    try:
-        members = []
-        usernames = []
-        next_cursor = None
-
-        while True:
-            response = client.conversations_members(
-                channel=channel_id,
-                cursor=next_cursor
-            )
-            members.extend(response['members'])
-
-            next_cursor = response['response_metadata'].get('next_cursor')
-            if not next_cursor:
-                break
-
-        for member in members:
-            member_info = client.users_info(user=member)
-            username = member_info['user']['real_name']
-            # Exclude bots
-            if member_info['user']['is_bot']:
-                continue
-            usernames.append(username)
-
-        return usernames
-
-    except SlackApiError as e:
-        print(f"Error fetching users: {e.response['error']}")
-        return []
-
-
-def split_into_groups(usernames, num_groups):
-    random.shuffle(usernames)
-    groups = [[] for _ in range(num_groups)]
-    for index, username in enumerate(usernames):
-        groups[index % num_groups].append(username)
-    return groups
-
 
 @app.command("/splitusers")
 def handle_split_command(ack, body, say):
-    """Handles the /splitusers command"""
-    ack()  # Acknowledge the slash command immediately
-    #
-    # # Extract the mentioned users from the command text
-    # text = body.get('text', '')
-    # user_mentions = text.strip().split()
-    #
-    # # Extract user IDs from mentions (formatted as <@USERID>)
-    # user_ids = [mention.strip('<@>') for mention in user_mentions]
+    ack()
+    # 인트로 텍스트
+    say("🥁두근두근..")
+    # Get text content within the split command
+    text = body.get('text', '')
+    print(f"Body text {text}")
 
-    # Fetch real names for each mentioned user (for group splitting)
-    # mentioned_users = []
-    # for user_id in user_ids:
-    #     try:
-    #         user_info = client.users_info(user=user_id)
-    #         username = user_info['user']['real_name']
-    #         mentioned_users.append(username)
-    #     except SlackApiError as e:
-    #         print(f"Error fetching user info for {user_id}: {e.response['error']}")
+    # Turn the split command text content into a list
+    command_text = text.strip().split()
+    # Get the number of groups to split it into
+    num_groups = int(command_text[0])
+    # Get the mentioned users
+    user_mentions = command_text[1:]
+    
+    # Get List of Mentioned Ids
+    mentioned_ids = [mention.strip('<@>').split("|")[0] for mention in user_mentions]
+    print(f"The mentioned users is {mentioned_ids}")
 
-    # Split the mentioned users into two groups
-    num_groups = 2  # You can make this dynamic if needed
-    usernames = get_all_users_in_channel("C086VHF8YTG")
+    # Get List of ids that have replied to the convo
+    user_list = get_lunch_convo_info(client, channel_id)["reply_users"]
+    print(f"The user list is: {user_list}")
 
-    groups = split_into_groups(usernames, num_groups)
+    # Remove the mentioned ids from the main list
+    filtered_list = filter_group(user_list, mentioned_ids)
+    print(f"The filtered list is {filtered_list}")
+
+    # Split the mentioned users into the number of groups defined in the command
+    groups = split_into_groups(user_list, num_groups)
 
     # Send a formatted response message back to the channel
-    response_message = "Here are the split groups:\n"
+    response_message = "🍖 오늘의 점심 팀 🍖\n"
     for i, group in enumerate(groups, start=1):
-        group_mentions = ", ".join([f"@{user}" for user in group])
+        group_mentions = ", ".join([f"<@{user_id}>" for user_id in group])
         response_message += f"Group {i}:\n - {group_mentions}\n"
 
     # Post the result back in the channel
     say(response_message)
 
 
+# Main Run
 if __name__ == "__main__":
     # Start the Bolt app using Socket Mode
     SocketModeHandler(app, app_token).start()
