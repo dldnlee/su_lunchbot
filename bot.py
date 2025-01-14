@@ -7,6 +7,8 @@ from splitIntoGroups import split_into_groups
 from splitIntoGroups import split_into_groups
 from filterGroup import filter_group
 from getLunchConvoInfo import get_lunch_convo_info
+from getAllUsersInChannel import get_all_users_in_channel
+from convertTimeToSlackTs import convert_time_to_slack_ts
 
 # Load environment variables
 load_dotenv()
@@ -24,11 +26,11 @@ def handle_split_command(ack, body, say):
     ack()
     # 인트로 텍스트
     say("🥁두근두근..")
-    # Get text content within the split command
+    # Slash Command 이후의 텍스트 불러오기
     text = body.get('text', '')
     print(f"Body text {text}")
 
-    # Turn the split command text content into a list
+    # Slash Command 리스트로 변환
     command_text = text.strip().split()
     # Get the number of groups to split it into
     if command_text: num_groups = int(command_text[0])
@@ -38,11 +40,16 @@ def handle_split_command(ack, body, say):
     
     # Get List of Mentioned Ids
     mentioned_ids = [mention.strip('<@>').split("|")[0] for mention in user_mentions]
-    print(f"The mentioned users is {mentioned_ids}")
+    # print(f"The mentioned users is {mentioned_ids}")
 
     # Get List of ids that have replied to the convo
-    user_list = get_lunch_convo_info(client, channel_id)["reply_users"]
-    print(f"The user list is: {user_list}")
+    user_list = get_lunch_convo_info(client, "C060ML4KF8E")['reply_users']
+    # print(f"The user list is: {user_list}")
+
+    # Exclude 영현님
+    mentioned_ids.append('U060RBWE6FP') # 영현님 아이디 제외 리스트에 추가
+    # print(mentioned_ids)
+
 
     # Remove the mentioned ids from the main list
     filtered_list = filter_group(user_list, mentioned_ids)
@@ -50,6 +57,7 @@ def handle_split_command(ack, body, say):
 
     # Split the mentioned users into the number of groups defined in the command
     groups = split_into_groups(filtered_list, num_groups)
+    print(groups)
 
     # Send a formatted response message back to the channel
     response_message = "🍖 오늘의 점심 팀 🍖\n\n"
