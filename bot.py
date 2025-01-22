@@ -7,11 +7,12 @@ from splitIntoGroups import split_into_groups
 from splitIntoGroups import split_into_groups
 from filterGroup import filter_group
 from getLunchConvoInfo import get_lunch_convo_info
-from getAllUsersInChannel import get_all_users_in_channel
-from convertTimeToSlackTs import convert_time_to_slack_ts
 
 # Load environment variables
-load_dotenv()
+current_dir = os.path.dirname(__file__)
+dotenv_path = os.path.join(current_dir, '.env')
+load_dotenv(dotenv_path)
+
 bot_token = os.getenv('SLACK_BOT_TOKEN')
 app_token = os.getenv('SLACK_APP_TOKEN')
 channel_id = os.getenv('SLACK_CHANNEL_ID')
@@ -21,43 +22,60 @@ app = App(token=bot_token)
 # Initialize the Client
 client = WebClient(token=bot_token)
 
+
 @app.command("/lunch")
 def handle_split_command(ack, body, say):
     ack()
     # 인트로 텍스트
-    say("🥁두근두근..")
+    say("🥁그룹 생성중...")
     # Slash Command 이후의 텍스트 불러오기
     text = body.get('text', '')
-    print(f"Body text {text}")
+    # print(f"Body text {text}")
 
     # Slash Command 리스트로 변환
     command_text = text.strip().split()
     # Get the number of groups to split it into
     if command_text: num_groups = int(command_text[0])
-    else : num_groups = 3
+    else : num_groups = 3 # default = 3
     # Get the mentioned users
     user_mentions = command_text[1:]
     
     # Get List of Mentioned Ids
     mentioned_ids = [mention.strip('<@>').split("|")[0] for mention in user_mentions]
+    # debugging
     # print(f"The mentioned users is {mentioned_ids}")
 
     # Get List of ids that have replied to the convo
-    user_list = get_lunch_convo_info(client, "C060ML4KF8E")['reply_users']
+    lunch_convo_info = get_lunch_convo_info(client, "C060ML4KF8E")
+    user_list = lunch_convo_info['reply_users']
+    # user_list = get_lunch_convo_info(client, "C060ML4KF8E")
+    # debugging
     # print(f"The user list is: {user_list}")
+
 
     # Exclude 영현님
     mentioned_ids.append('U060RBWE6FP') # 영현님 아이디 제외 리스트에 추가
+    # debugging
     # print(mentioned_ids)
+
+    # Exclude users that have reacted to the '공지채널 데일리 스크럼' message
+    if "reactions" in lunch_convo_info: 
+        for id in lunch_convo_info['reactions'][0]['users']:
+            if id in mentioned_ids:
+                pass
+            else:
+                mentioned_ids.append(id)
+    else: 
+        pass
 
 
     # Remove the mentioned ids from the main list
     filtered_list = filter_group(user_list, mentioned_ids)
-    print(f"The filtered list is {filtered_list}")
+    # print(f"The filtered list is {filtered_list}")
 
     # Split the mentioned users into the number of groups defined in the command
     groups = split_into_groups(filtered_list, num_groups)
-    print(groups)
+    # print(groups)
 
     # Send a formatted response message back to the channel
     response_message = "🍖 오늘의 점심 팀 🍖\n\n"

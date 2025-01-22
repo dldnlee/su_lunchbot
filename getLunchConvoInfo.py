@@ -5,5 +5,5 @@ def get_lunch_convo_info(client, channel_id) :
     response = client.conversations_history(
         channel=channel_id, 
         oldest=ts,
-        limit=5)
-    return response['messages'][1]
+        limit=1)
+    return response['messages'][0]
