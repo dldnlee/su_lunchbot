@@ -61,14 +61,12 @@ def handle_split_command(ack, body, say):
 
         # Exclude users that have reacted to the '공지채널 데일리 스크럼' message
         if "reactions" in lunch_convo_info: 
-            for id in lunch_convo_info['reactions'][0]['users']:
-                if id in mentioned_ids:
-                    pass
-                else:
-                    mentioned_ids.append(id)
+            for reaction in lunch_convo_info["reactions"]:
+                for user_id in reaction.get("users", []):
+                    if user_id not in mentioned_ids:
+                        mentioned_ids.append(user_id)
         else: 
             pass
-
 
         # Remove the mentioned ids from the main list
         filtered_list = filter_group(user_list, mentioned_ids)
@@ -89,6 +87,7 @@ def handle_split_command(ack, body, say):
 
         # Post the result back in the channel
         say(response_message)
+        say("점심 맛있게 드세요!")
     except:
         say("입력 형식을 지켜주세요:\n/lunch (그룹 수) @제외인원 @제외인원 ..")
 
